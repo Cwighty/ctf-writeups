@@ -1,0 +1,73 @@
+First thing I notice here is this debrief about the new lock...
+
+    "LockIT Pro Hardware  Security Module 1 stores  the login password,
+    ensuring users  can not access  the password through  other means.
+    The LockIT Pro  can send the LockIT Pro HSM-1  a password, and the
+    HSM will  return if the password  is correct by setting  a flag in
+    memory."
+
+It looks like theres a hardware chip that stores the password out of view and it will set a flag in viewable memory 
+if the password it revieves is correct? hmm, I'll keep my eye out for this.
+
+Looking through the functions, it looks like <login> is our main, 
+I also notice that the password will be between 8 and 16 characters because of the prompt.
+We load in the password into r15 again, and we call <test_password_valid>. I'll look there next.
+
+It looks a little more complicated than previous check functions so I'll see if I can work through it line by line
+to decipher what its doing.
+
+    4454:  0412           push	r4
+    4456:  0441           mov	sp, r44
+
+Here were making space on the stack and saving our current stack pointer which is refrencing this in memory:
+    43fa 0000 4845 3c44 3140 0044 1542 5c01 75f3  ..HE<D1@.D.B\.u.
+
+    4458:  2453           incd	r4
+    445a:  2183           decd	sp
+Here we are incrementing r4 by and address space and decrementing the stack pointer by one space
+
+    445c:  c443 fcff      mov.b	#0x0, -0x4(r4)
+We move a zero to 4 before r4, which I'm pretty sure doesnt change anything, the memory looks the same before and after
+
+4460:  3e40 fcff      mov	#0xfffc, r14
+We load that hex value into r14
+
+4464:  0e54           add	r4, r14
+we add r4 (43fc) to r14 (fffc) and load it into r14 so now r14 is actually the same as the stack pointer
+    
+    4466:  0e12           push	r14
+    4468:  0f12           push	r15
+    446a:  3012 7d00      push	#0x7d
+Push a lot to the stack, now were at:
+    43f2 7d00 0024 f843 0024 0000 4845 3c44 3140  }..$.C.$..HE<D1@
+
+
+at this point I debug through the rest and im not quite sure whats going on. But I have an idea to put in a password
+thats too long and see what happens.
+
+446e:  b012 7a45      call	#0x457a <INT>
+4472:  5f44 fcff      mov.b	-0x4(r4), r15
+4476:  8f11           sxt	r15
+4478:  3152           add	#0x8, sp
+447a:  3441           pop	r4
+447c:  3041           ret
+
+
+Still fails. I'm not sure the test password valid section is going to help us so I'll look further.
+
+I notice after we call the last function we come back to login and it looks like were saving 0xda at 2410, which is close
+to where our entered password is (2400). 
+
+That doesnt actually seem to put any ascii in memory or anything at that address...
+
+455a:  f290 7400 1024 cmp.b	#0x74, &0x2410
+
+Then we are comparing if theres a 74 at that address? I notice that 74 is a t in ascii, and 2410 is 17 characters away from 
+where our password is saved, so maybe if i just type in a 17 character password ending with a t, I'll get passed the check?
+
+reset
+I type in "AAAAAAAAAAAAAAAAt"
+and were in.
+So that whole text password section was just a misdirection that did nothing. Jerks.
+
+
