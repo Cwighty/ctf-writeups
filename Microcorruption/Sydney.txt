@@ -1,0 +1,18 @@
+I started this one write after New Orleans. It says something about the password not being in memory this time. 
+
+"We have received reports  that the
+    prior  version of  the  lock was  bypassable  without knowing  the
+    password. We have fixed this and removed the password from memory."
+
+I next looked for interesting function names again. "<check_password>" sticks out this time. 
+I'm seeing a few comparisons and jumps (cmp, jnz). I'm noticing that r15 is usually where they place the user entered password.
+So it looks like were comparing parts of the password we enter with various hex values that I assume are ascii. If they are
+not equal we jump out of the function. It looks like from further debugging that r14 must be set to one before leaving the function
+in order for the lock to unlock. I plug in the hex value like before and get "/*1=WYg)".
+
+I try this but it's not working. I'm failing the comparisions and its jumping out. I'm thinking maybe this has something
+to do with big-endian vs little-endian, maybe its backwards, so I switch each byte like we learned in computer architechture.
+0x2a2f loaded in the first spot should be 0x2f2a. I do this with the rest of the values and it swaps each pair of chars from before.
+now I have "*/=1YW)g".
+
+I reset and try this and it works.
