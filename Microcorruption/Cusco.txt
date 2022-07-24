@@ -1,0 +1,53 @@
+This one looks like its adding upon the last one, but this time they say
+    "We have improved the security of the
+    lock by  removing a conditional  flag that could  accidentally get
+    set by passwords that were too long."
+
+Seems like there is still a flag somewhere that needs to be set, so I'll keep an eye out for that.
+
+So it has the same code as before except that little conditional line we got through with last time.
+Another difference I notice is the password is saved in the middle of all the stuff hapenning with the
+test_password_valid method, but that function is exactly the same.
+In order to get through to unlock the lock, r15 has to be set to 1 by the time it returns, so how can we make that happen?
+
+4470:  5f44 fcff      mov.b	-0x4(r4), r15
+4474:  8f11           sxt	r15
+
+Right before the end we load 4 before r4 into r15 and sign extend. 
+So im guessing somehow we need to put some ones before r4.
+
+Tried messing with that for a while and got nowhere. I can't figure out how to write before the input we give the program.
+Now that im looking closer though, the program isn't enforcing the 16 character limit, it just lets us write whatever we want,
+and I'm also noticing our password is stored pretty close to some other code in the program. Maybe we can write something
+that will reroute the program and call the unlock function.
+
+We can see the unlock_door function is at address #0x4446
+Our password is stored at 43f0. I think we just need to write some hex assembly that calls the unlock door function,
+and make sure we get it into the flow of our program.
+
+I debugged the program and watched the pc counter to see where to inject our code. I need to copy some of the previous instructions,
+and then inject our call (b012 4644).
+
+4142   VE...E...C0.$EAB
+43f0: 4344 4546 4748 494a 4b3a 3c00 0000 3c44   CDEFGHIJK:<...<D
+4400: 3140 0044 1542 5c01 75f3 35d0 085a 3f40   1@.D.B\.u.5..Z?@
+4410: 0000 0f93 0724 8245 5c01 2f83 9f4f d445   .....$.E\./..O.E
+4420: 0024 f923 3f40 0000 0f93 0624 8245 5c01   .$.#?@.....$.E\.
+4430: 1f83 cf43 0024 fa23 b012 0045 32d0 f000   ...C.$.#...E2...
+4440: fd3f 3040 d245 3012 7f00 b012 4245 2153   .?0@.E0....BE!S
+4450: 3041 
+
+4142434445464748494a4b3a3c0000003c443140004415425c0175f335d0085a3f4000000f93072482455c012f839f4fd4450024f9233f4000000f93062482455c011f83cf430024fa23b012004532d0f000fd3f3040d24530127f00b012424521533041b0124644
+
+Well that didn't work, it doesn't look like it lets us write that far.
+It only lets us get to about 4420. Lets step through and see if we ever encounter any of those addresses.
+
+Debugging further it looks like at the end of the test password method we increment the stack pointer, which moves us into 
+our password storage area the second go around. The program fails at address 4400 which will be right outside of the 16 chars.
+I can't remember for sure but doesn't the return call just call the address at the stack pointer? Lets find out.
+
+We want to go to address 4528, so I'll put that in a bunch of times.    
+
+So it didn't work the first time, still got an invalid address error, but then I realized It was probably a big endian little endian 
+thing, so I put in 2845 a bunch instead, and it worked. We rerouted to the unlock portion of the program when we hit 
+the return in the test_password_valid function.
