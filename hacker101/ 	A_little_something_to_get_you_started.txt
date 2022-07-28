@@ -1,0 +1,11 @@
+The page is just html, but it looks like the url has hex in it.
+
+    https://201f3deb5ad55ad42296bbdfd0eccbeb.ctf.hacker101.com/
+
+It says its not the flag tho...
+
+It does say it is requesting a backgroung.png even though everything is white.
+
+The response to the get request for that image has the flag.
+
+^FLAG^8d82409d3cddeac13724f4a22ed11f9626d1bbd3d39dfcf3724a3c48ac0e36db$FLAG$
