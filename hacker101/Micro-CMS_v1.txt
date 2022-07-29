@@ -1,0 +1,90 @@
+We get to edit markdown on a lot of the pages, so I imagine we will git a flag from somehow
+injecting javascript into the page, cross site scripting.
+
+I've been messing with that for a while and I can't get any scripts to run. they are scrubbed
+if you do it any obvious way.
+
+I tried adding an onclick to a button that was already there, the script isn't working,
+but when I looked at the source it had a flag attribute on the button.
+
+^FLAG^879a01b427fe9ffae930263fe9f45ff7c7be5356bfc659243f1e550bd930ab5b$FLAG$
+
+When I opened up the page again another flag popped up in an alert, don't know why but...
+
+^FLAG^998d7b70982da2fac6b32d974a88a3cfcf37597d5e41efd7494cbf3885258c64$FLAG$
+
+Actually it came becuase I was trying to cross site script an alert that said hi into the 
+title of the first page, I though maybe they wouldn't scrub the Title box, and it didn't 
+work on the actual page, but when I reloaded the first page, it added my script and another
+that had the flag.
+
+I tried the same thing on the second page title but got the same flag there.
+
+Theres a button to create a new page, I'll look there.
+
+I tried the same thing from before, got the same flag. It looks like you can only create 4 pages.
+The pages go from 1, 2 to 10, 11 in the url. Maybe I can request 3, 4, etc.
+
+They all returned Not found until page 7, it says Forbidden and I don't 
+have permission to view.
+
+I got in by noticing the url pattern for editing pages was ../page/edit/page number
+So I put in page number 7 and the flag was in the text box.
+
+^FLAG^930e42fc475a99f195f06ddd6fc679a133e847fa36a9a01cff29c4429c8085a9$FLAG$
+
+Today its letting me make more pages, so maybe I can look at what the create button is doing.
+It makes a post request to /page/create with data fields "title" and "body".
+
+My first guess is to try and make as many as I can.
+
+I wrote a quick script to make the post request 100 times in a for loop.
+
+for (i = 0; i < 500; i++)
+  {
+    fetch("https://03af7b99b3c7408f18dcefef1adce701.ctf.hacker101.com/page/create", {
+    "credentials": "omit",
+    "headers": {
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101 Firefox/91.0",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Upgrade-Insecure-Requests": "1",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "same-origin",
+        "Sec-Fetch-User": "?1"
+    },
+    "referrer": "https://03af7b99b3c7408f18dcefef1adce701.ctf.hacker101.com/page/create",
+    "body": `"title=auto ${i}&body="`,
+    "method": "POST",
+    "mode": "cors"
+});
+  }
+
+It started giving me 504 nginx errors around 545. I'm going to reload the enviorment and 
+try again.
+
+Now it wont let me do it at all, maybe it thinks its a dos or something.
+I think I just typed something wrong.
+Now its working again. I tried doing like 5000 lol and now everything is frozen.
+They did say to have the mindset of pushing buttons... so....
+
+Well it created like 4638 pages, some packets got lost I guess, 
+so Idk if theres a limit or if I'm looking in
+the right place.
+
+I got stuck on this last flag so I looked it up. I wouldn't have ever thought to do this,
+but apparently if you add ' to the end of ../page/edit/1' It gives you the flag for some
+reason. I'm going to look up more on this.
+
+^FLAG^a8fef3cbda54a44c0cd4bd94e0b47a5922d742635156bec1cbdafc29ac382c89$FLAG$
+
+It looks like a type of SQL injection. They noticed it by the page ID being passed
+in the URL.
+
+https://www.acunetix.com/blog/articles/exploiting-sql-injection-example/
+
+In this article they use the tick mark on a similar url to see if it will
+throw a SQL error. It's basically a quick way to test if the url is vulnerable to 
+further SQLi as it should throw an error if it's not filtered before the query.
